@@ -5,17 +5,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -27,6 +21,7 @@ import com.aistudio.petcare.R
 import com.aistudio.petcare.data.local.Pet
 import com.aistudio.petcare.ui.viewmodel.MainViewModel
 import com.google.firebase.auth.FirebaseAuth
+import coil.compose.rememberAsyncImagePainter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,21 +31,42 @@ fun HomeScreen(
     onAddPetClick: () -> Unit,
     onForumClick: () -> Unit,
     onMapClick: () -> Unit,
-    onStatsClick: () -> Unit
+    onStatsClick: () -> Unit,
+    onProfileClick: () -> Unit
 ) {
     val pets by viewModel.pets.collectAsState()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    var currentUser by remember { mutableStateOf(FirebaseAuth.getInstance().currentUser) }
+    val profile by viewModel.userProfile.collectAsState()
+
+    DisposableEffect(Unit) {
+        val listener = FirebaseAuth.AuthStateListener { auth ->
+            currentUser = auth.currentUser
+        }
+        FirebaseAuth.getInstance().addAuthStateListener(listener)
+        onDispose {
+            FirebaseAuth.getInstance().removeAuthStateListener(listener)
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("PetCare") },
                 actions = {
-                    IconButton(onClick = {
-                        FirebaseAuth.getInstance().signOut()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Sign Out")
+                    IconButton(onClick = onProfileClick) {
+                        Icon(Icons.Default.Person, contentDescription = "Profile")
+                    }
+                    if (currentUser != null) {
+                        IconButton(onClick = {
+                            FirebaseAuth.getInstance().signOut()
+                        }) {
+                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Sign Out")
+                        }
+                    } else {
+                        IconButton(onClick = onForumClick) {
+                            Icon(Icons.Default.Login, contentDescription = "Login")
+                        }
                     }
                 }
             )
@@ -109,6 +125,24 @@ fun HomeScreen(
                 }
             }
 
+            if (currentUser != null && profile == null) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                        onClick = onProfileClick
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("Complete your profile", style = MaterialTheme.typography.titleMedium)
+                            Text("Add your phone, address, and city to enable full features.", style = MaterialTheme.typography.bodySmall)
+                            TextButton(onClick = onProfileClick, modifier = Modifier.align(Alignment.End)) {
+                                Text("Register Now")
+                            }
+                        }
+                    }
+                }
+            }
+
             item {
                 Text(
                     text = "My Pets",
@@ -119,7 +153,12 @@ fun HomeScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (currentUser != null) 
+                            MaterialTheme.colorScheme.surfaceVariant 
+                        else 
+                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                    )
                 ) {
                     Row(
                         modifier = Modifier.padding(12.dp),
@@ -128,14 +167,20 @@ fun HomeScreen(
                         Icon(
                             imageVector = Icons.Default.Security,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = if (currentUser != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "End-to-End Encrypted Sync Active",
+                            text = if (currentUser != null) 
+                                "End-to-End Encrypted Sync Active" 
+                            else 
+                                "Local Only - Sign In to Sync & Secure",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
+                            color = if (currentUser != null) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.error
                         )
                     }
                 }
@@ -175,14 +220,22 @@ fun PetCard(pet: Pet, onClick: () -> Unit) {
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Placeholder for pet icon
             Surface(
                 modifier = Modifier.size(64.dp),
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(pet.name.take(1), style = MaterialTheme.typography.headlineLarge)
+                    if (pet.photoUrl != null) {
+                        Image(
+                            painter = rememberAsyncImagePainter(pet.photoUrl),
+                            contentDescription = "Pet Photo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(pet.name.take(1), style = MaterialTheme.typography.headlineLarge)
+                    }
                 }
             }
             Spacer(modifier = Modifier.width(16.dp))

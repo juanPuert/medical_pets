@@ -18,10 +18,34 @@ import androidx.core.app.NotificationCompat
 import com.aistudio.petcare.data.repository.FirestoreRepository
 import com.aistudio.petcare.data.repository.ForumPost
 
+import com.aistudio.petcare.data.repository.UserProfile
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
 class MainViewModel(
     private val repository: PetRepository,
     private val firestoreRepository: FirestoreRepository
 ) : ViewModel() {
+    private val _userProfile = MutableStateFlow<UserProfile?>(null)
+    val userProfile = _userProfile.asStateFlow()
+
+    init {
+        loadUserProfile()
+    }
+
+    fun loadUserProfile() {
+        viewModelScope.launch {
+            _userProfile.value = firestoreRepository.getUserProfile()
+        }
+    }
+
+    fun saveUserProfile(name: String, email: String, phone: String, address: String, country: String, city: String) {
+        viewModelScope.launch {
+            val profile = UserProfile(name = name, email = email, phone = phone, address = address, country = country, city = city)
+            firestoreRepository.saveUserProfile(profile)
+            _userProfile.value = profile
+        }
+    }
     val pets: StateFlow<List<Pet>> = repository.allPets
         .stateIn(
             scope = viewModelScope,
@@ -42,7 +66,7 @@ class MainViewModel(
         }
     }
 
-    fun addPet(name: String, species: String, breed: String, birthDate: Long, weight: Float) {
+    fun addPet(name: String, species: String, breed: String, birthDate: Long, weight: Float, photoUri: String? = null) {
         viewModelScope.launch {
             repository.insertPet(
                 Pet(
@@ -50,7 +74,8 @@ class MainViewModel(
                     species = species,
                     breed = breed,
                     birthDate = birthDate,
-                    weight = weight
+                    weight = weight,
+                    photoUrl = photoUri
                 )
             )
         }

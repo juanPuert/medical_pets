@@ -55,67 +55,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             PetCareTheme {
-                AuthGate { user ->
-                    val mainViewModel: MainViewModel = viewModel(
-                        factory = object : ViewModelProvider.Factory {
-                            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                                return MainViewModel(repository, firestoreRepository) as T
-                            }
+                val mainViewModel: MainViewModel = viewModel(
+                    factory = object : ViewModelProvider.Factory {
+                        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                            return MainViewModel(repository, firestoreRepository) as T
                         }
-                    )
-                    PetCareApp(mainViewModel)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun AuthGate(content: @Composable (com.google.firebase.auth.FirebaseUser) -> Unit) {
-    var user by remember { mutableStateOf(FirebaseAuth.getInstance().currentUser) }
-    var isLoading by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(Unit) {
-        FirebaseAuth.getInstance().addAuthStateListener { auth ->
-            user = auth.currentUser
-        }
-    }
-
-    if (user == null) {
-        AuthScreen(
-            isLoading = isLoading,
-            onSignInClick = {
-                isLoading = true
-                scope.launch {
-                    try {
-                        val credentialManager = CredentialManager.create(context)
-                        val googleIdOption = GetSignInWithGoogleOption.Builder(
-                            serverClientId = context.getString(R.string.default_web_client_id)
-                        ).build()
-
-                        val request = GetCredentialRequest.Builder()
-                            .addCredentialOption(googleIdOption)
-                            .build()
-
-                        val result = credentialManager.getCredential(context as android.app.Activity, request)
-                        val credential = result.credential
-
-                        if (credential is CustomCredential && credential.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                            val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                            val authCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
-                            FirebaseAuth.getInstance().signInWithCredential(authCredential).await()
-                        }
-                    } catch (e: Exception) {
-                        // Handle error
-                    } finally {
-                        isLoading = false
                     }
-                }
+                )
+                PetCareApp(mainViewModel)
             }
-        )
-    } else {
-        content(user!!)
+        }
     }
 }

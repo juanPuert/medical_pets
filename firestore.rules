@@ -66,10 +66,19 @@ service cloud.firestore {
              data.timestamp is timestamp && data.timestamp <= request.time;
     }
 
+    function isValidUser(data) {
+      return data.name is string &&
+             data.email is string &&
+             data.phone is string &&
+             data.address is string &&
+             data.country is string &&
+             data.city is string;
+    }
+
     // Collection Matches
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow create, update: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidUser(incoming());
 
       match /pets/{petId} {
         allow read, write: if isOwner(userId) && (request.method != 'create' && request.method != 'update' || isValidPet(incoming()));

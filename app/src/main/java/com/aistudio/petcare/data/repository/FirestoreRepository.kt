@@ -21,10 +21,35 @@ data class ForumPost(
     val petType: String? = null
 )
 
+data class UserProfile(
+    val uid: String = "",
+    val name: String = "",
+    val email: String = "",
+    val phone: String = "",
+    val address: String = "",
+    val country: String = "",
+    val city: String = ""
+)
+
 class FirestoreRepository(context: Context) {
     private val dbId = context.getString(R.string.firestore_database_id)
     private val db = FirebaseFirestore.getInstance(dbId)
     private val auth = FirebaseAuth.getInstance()
+
+    suspend fun getUserProfile(): UserProfile? {
+        val uid = auth.currentUser?.uid ?: return null
+        return try {
+            val doc = db.collection("users").document(uid).get().await()
+            doc.toObject(UserProfile::class.java)?.copy(uid = doc.id)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun saveUserProfile(profile: UserProfile) {
+        val uid = auth.currentUser?.uid ?: return
+        db.collection("users").document(uid).set(profile).await()
+    }
 
     fun getForumPosts(): Flow<List<ForumPost>> {
         return db.collection("forum_posts")

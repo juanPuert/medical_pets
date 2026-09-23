@@ -14,6 +14,7 @@ import kotlinx.serialization.Serializable
 @Serializable object ForumRoute
 @Serializable object MapRoute
 @Serializable object StatsRoute
+@Serializable object ProfileRoute
 
 @Composable
 fun PetCareApp(viewModel: MainViewModel) {
@@ -26,7 +27,8 @@ fun PetCareApp(viewModel: MainViewModel) {
                 onAddPetClick = { navController.navigate(AddPetRoute) },
                 onForumClick = { navController.navigate(ForumRoute) },
                 onMapClick = { navController.navigate(MapRoute) },
-                onStatsClick = { navController.navigate(StatsRoute) }
+                onStatsClick = { navController.navigate(StatsRoute) },
+                onProfileClick = { navController.navigate(ProfileRoute) }
             )
         }
         composable<PetDetailRoute> { backStackEntry ->
@@ -39,8 +41,8 @@ fun PetCareApp(viewModel: MainViewModel) {
         }
         composable<AddPetRoute> {
             AddPetScreen(
-                onAddClick = { name, species, breed, birthDate, weight ->
-                    viewModel.addPet(name, species, breed, birthDate, weight)
+                onAddClick = { name, species, breed, birthDate, weight, photoUri ->
+                    viewModel.addPet(name, species, breed, birthDate, weight, photoUri)
                     navController.popBackStack()
                 },
                 onBackClick = { navController.popBackStack() }
@@ -54,6 +56,9 @@ fun PetCareApp(viewModel: MainViewModel) {
         }
         composable<StatsRoute> {
             StatsScreen(onBackClick = { navController.popBackStack() })
+        }
+        composable<ProfileRoute> {
+            ProfileScreen(viewModel = viewModel, onBackClick = { navController.popBackStack() })
         }
     }
 }
