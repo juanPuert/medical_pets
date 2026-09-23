@@ -1,0 +1,86 @@
+{
+  "collections": {
+    "users": {
+      "documents": {
+        "{userId}": {
+          "fields": {
+            "displayName": "string",
+            "email": "string",
+            "createdAt": "timestamp"
+          },
+          "collections": {
+            "pets": {
+              "documents": {
+                "{petId}": {
+                  "fields": {
+                    "name": "string",
+                    "species": "string",
+                    "breed": "string",
+                    "birthDate": "number",
+                    "weight": "number",
+                    "photoUrl": "string?",
+                    "updatedAt": "timestamp"
+                  }
+                }
+              }
+            },
+            "medical_records": {
+              "documents": {
+                "{recordId}": {
+                  "fields": {
+                    "petId": "string",
+                    "date": "number",
+                    "diagnosis": "string",
+                    "treatment": "string",
+                    "vetName": "string",
+                    "notes": "string?"
+                  }
+                }
+              }
+            },
+            "vaccines": {
+              "documents": {
+                "{vaccineId}": {
+                  "fields": {
+                    "petId": "string",
+                    "name": "string",
+                    "dateAdministered": "number",
+                    "nextDueDate": "number",
+                    "manufacturer": "string?"
+                  }
+                }
+              }
+            },
+            "feeding_reminders": {
+              "documents": {
+                "{reminderId}": {
+                  "fields": {
+                    "petId": "string",
+                    "time": "string",
+                    "foodType": "string",
+                    "quantity": "string",
+                    "isActive": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "forum_posts": {
+      "documents": {
+        "{postId}": {
+          "fields": {
+            "userId": "string",
+            "userName": "string",
+            "title": "string",
+            "content": "string",
+            "timestamp": "timestamp",
+            "petType": "string?"
+          }
+        }
+      }
+    }
+  }
+}

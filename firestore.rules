@@ -1,0 +1,97 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation Helpers
+    function isValidPet(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.species is string &&
+             data.breed is string &&
+             data.birthDate is number &&
+             data.weight is number &&
+             (!('photoUrl' in data) || data.photoUrl == null || (data.photoUrl is string && data.photoUrl.size() <= 1000));
+    }
+
+    function isValidMedicalRecord(data) {
+      return data.petId is string &&
+             data.date is number &&
+             data.diagnosis is string &&
+             data.treatment is string &&
+             data.vetName is string &&
+             (!('notes' in data) || data.notes == null || data.notes is string);
+    }
+
+    function isValidVaccine(data) {
+      return data.petId is string &&
+             data.name is string &&
+             data.dateAdministered is number &&
+             data.nextDueDate is number &&
+             (!('manufacturer' in data) || data.manufacturer == null || data.manufacturer is string);
+    }
+
+    function isValidFeedingReminder(data) {
+      return data.petId is string &&
+             data.time is string &&
+             data.foodType is string &&
+             data.quantity is string &&
+             data.isActive is bool;
+    }
+
+    function isValidPost(data) {
+      return data.userId == request.auth.uid &&
+             data.userName is string &&
+             data.title is string && data.title.size() <= 200 &&
+             data.content is string && data.content.size() <= 5000 &&
+             data.timestamp is timestamp && data.timestamp <= request.time;
+    }
+
+    // Collection Matches
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create, update: if isOwner(userId);
+
+      match /pets/{petId} {
+        allow read, write: if isOwner(userId) && (request.method != 'create' && request.method != 'update' || isValidPet(incoming()));
+      }
+
+      match /medical_records/{recordId} {
+        allow read, write: if isOwner(userId) && (request.method != 'create' && request.method != 'update' || isValidMedicalRecord(incoming()));
+      }
+
+      match /vaccines/{vaccineId} {
+        allow read, write: if isOwner(userId) && (request.method != 'create' && request.method != 'update' || isValidVaccine(incoming()));
+      }
+
+      match /feeding_reminders/{reminderId} {
+        allow read, write: if isOwner(userId) && (request.method != 'create' && request.method != 'update' || isValidFeedingReminder(incoming()));
+      }
+    }
+
+    match /forum_posts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidPost(incoming());
+      allow update, delete: if isSignedIn() && existing().userId == request.auth.uid && (request.method == 'delete' || isValidPost(incoming()));
+    }
+  }
+}

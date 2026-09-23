@@ -1,0 +1,6 @@
+{
+  "name": "PetCare",
+  "description": "Interactive pet care app with medical records, reminders, forum, and clinic maps.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
